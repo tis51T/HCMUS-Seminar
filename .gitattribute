@@ -1,0 +1,2 @@
+git lfs track "*.json"
+git lfs track "*.safetensors"
