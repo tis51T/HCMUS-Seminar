@@ -2,21 +2,40 @@
 ## One sample look like
 ### Twitter Dataset
 ```
-{
-    "words": [      "And",      "this",      "is",      "proof",      "that",      "the",      "US",      "is",      "behind",
-      "in",      "fashion",      ",",      "I",      "bought",      "this",      "sweater",      "in",      "Europe",      "last",
-      "winter",      "(",      "except",      "in",      "grey",      ")"
+  {
+    "words": [
+      "RT",
+      "@",
+      "FundsOverBuns",
+      ":",
+      "Tyga",
+      "went",
+      "from",
+      "pedophile",
+      "to",
+      "messing",
+      "with",
+      "cougars",
+      "all",
+      "within",
+      "a",
+      "week"
     ],
-    "image_id": "15649.jpg",
-    "aspects": [
-      { "from": 6, "to": 7, "polarity": "NEG", "term": ["US"] },
-      { "from": 17, "to": 18, "polarity": "POS", "term": ["Europe"] }
-    ],
-    "opinions": [{ "term": [] }],
-    "caption": "im not a fan of the black t  shirt but i love the black",
-    "image_path": "./data/twitter2015_images/15649.jpg",
-    "aspects_num": 2
-}
+    "image_id": "975807.jpg",
+    "aspects": [{ "from": 4, "to": 5, "polarity": "NEU", "term": ["Tyga"] }],
+    "opinions": [{ "term": [] }]
+  },
+```
+Then turn into look like this
+```
+1	1	975807.jpg	RT @ FundsOverBuns : $T$ went from pedophile to messing with cougars all within a week	Tyga
+```
+or
+```
+RT @ FundsOverBuns : $T$ went from pedophile to messing with cougars all within a week
+Tyga
+0
+975807.jpg
 ```
 
 ### Hotel Dataset
