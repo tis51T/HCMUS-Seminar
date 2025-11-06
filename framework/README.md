@@ -1,10 +1,13 @@
 This folder contains multiple framework for testing. To get a framework, go to git and clone.
 The directory will look like:
 ```
-framework
-|- bart_models
-|- GMP
-|- JML
+framework/
+|- bart_models/
+|- VLP-MABSA/
+|- TomBERT/
+|- GMP/
+|- JML/
+|- CORSA/
 |- ...
 
 ```
