@@ -16,38 +16,36 @@ triplet_extractor = ASTE.AspectSentimentTripletExtractor(
 )  # here I use the english checkpoint which is trained on all English datasets in PyABSA
 
 
-def extract_triplets(extractor):
+def extract_triplets(extractor, data_path="../../data/hotel_review_10k_only_merge.json"):
     triplet_extractor = extractor
 
     # Load data
-    with open("../../data/hotel_review_10k_only_merge.json", "r") as f:
+    with open(data_path, "r") as f:
         data = json.load(f)
 
     # batch_i = 0
-    batch_size = 100
+    batch_size = 1000
     batch_save = []
 
     idx = 0
     for i, entry in tqdm(enumerate(data), total=len(data)):
         # check file exists
-        if os.path.exists(f"../../data/hotel_review_10k_triplet_extracted_batch_{idx}.json"):
+        if os.path.exists(f'{data_path.replace(".json", "_four_component_batch")}_{idx}.json'):
             idx += 1
             continue
-
-        
-        review = entry["review_merged"]
+        review = entry["review"]
         sentence_split = [s for s in review.split(".")if len(s.strip()) > 5] 
-        result = []
+        result = {}
         for s in sentence_split:
             s = s.strip()
-            result.append({s: triplet_extractor.predict(s, print_result=False)["Triplets"]})   
+            result[s] = triplet_extractor.predict(s, print_result=False)["Triplets"]
         
         entry["result"] = result
         batch_save.append(entry)
 
         if batch_save and len(batch_save) >= batch_size:
             with open(
-                f"../../data/hotel_review_10k_triplet_extracted_batch_{idx}.json",
+                f'{data_path.replace(".json", "_four_component_batch")}_{idx}.json',
                 "w",
             ) as f:
                 json.dump(batch_save, f, indent=4)
@@ -57,7 +55,7 @@ def extract_triplets(extractor):
         # time.sleep(0.01)  # to prevent potential overload
 
     with open(
-        f"../../data/hotel_review_10k_triplet_extracted_batch_{idx}.json",
+        f'{data_path.replace(".json", "_four_component_batch")}_{idx}.json',
         "w",
         ) as f:
         json.dump(batch_save, f, indent=4)
@@ -122,4 +120,4 @@ def check_missing_triplets():
 
 if __name__ == "__main__":
     # check_missing_triplets()
-    re_extract_triplets(triplet_extractor, retry=3, data_path="../../data/hotel_data/hotel_review_10k_missing_triplet_samples.json")
+    extract_triplets(triplet_extractor, data_path="../../data/clean_en_data_111k.json")

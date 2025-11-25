@@ -24,3 +24,6 @@ CORSA/
 AAHR/
 HREM/
 new_framework/
+data/
+*dataset*
+*.pt
