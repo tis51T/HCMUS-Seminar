@@ -2,13 +2,17 @@ This folder contains multiple framework for testing. To get a framework, go to g
 The directory will look like:
 ```
 framework/
-|- bart_models/
-|- VLP-MABSA/
-|- TomBERT/
-|- GMP/
-|- JML/
-|- CORSA/
-|- ...
+|- mabsa/
+    |- VLP-MABSA/
+    |- GMP/
+    |- JML/
+    |- CORSA/
+    |- AoM/
+    |- DTCA
+|- tim/
+    |- AAHR
+    |- ComCLIP
+    |- HREM
 
 ```
 
