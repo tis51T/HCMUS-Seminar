@@ -18,6 +18,7 @@ from io import BytesIO
 import os
 from typing import List, Dict, Any
 import logging
+from tqdm import tqdm
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -25,19 +26,23 @@ logger = logging.getLogger(__name__)
 
 
 class BLIPCaptioner:
-    def __init__(self, model_name: str = "Salesforce/blip-image-captioning-base"):
+    def __init__(self, model_name: str = "Salesforce/blip-image-captioning-base", use_fast: bool = False):
         """
         Initialize BLIP model and processor
         
         Args:
             model_name: HuggingFace model name for BLIP
+            use_fast: whether to load a fast processor/tokenizer when available. If False, a "slow" processor
+                      will be used (keeps previous behaviour). In Transformers v4.52 the default may change
+                      to use_fast=True which can cause minor differences in outputs.
         """
-        logger.info(f"Loading BLIP model: {model_name}")
+
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.processor = BlipProcessor.from_pretrained(model_name)
+        # Pass use_fast explicitly so behavior is reproducible regardless of HF default changes
+        self.processor = BlipProcessor.from_pretrained(model_name, use_fast=use_fast)
         self.model = BlipForConditionalGeneration.from_pretrained(model_name)
         self.model.to(self.device)
-        logger.info(f"Model loaded on device: {self.device}")
+
     
     def download_image(self, url: str) -> Image.Image:
         """
@@ -55,7 +60,7 @@ class BLIPCaptioner:
             image = Image.open(BytesIO(response.content)).convert('RGB')
             return image
         except Exception as e:
-            logger.error(f"Error downloading image from {url}: {e}")
+
             raise
     
     def crop_image(self, image: Image.Image, bbox: List[int]) -> Image.Image:
@@ -78,7 +83,7 @@ class BLIPCaptioner:
         y2 = max(y1, min(y2, height))
         
         if x2 <= x1 or y2 <= y1:
-            logger.warning(f"Invalid bounding box: {bbox}")
+
             return None
             
         return image.crop((x1, y1, x2, y2))
@@ -107,7 +112,7 @@ class BLIPCaptioner:
             return caption
             
         except Exception as e:
-            logger.error(f"Error generating caption: {e}")
+
             return "Caption generation failed"
     
     def process_image_data(self, image_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -124,11 +129,9 @@ class BLIPCaptioner:
         
         try:
             # Download original image
-            logger.info(f"Processing image ID: {image_data.get('id', 'unknown')}")
             original_image = self.download_image(image_data['photo_url'])
             
             # Generate caption for original image
-            logger.info("Generating caption for original image")
             original_caption = self.generate_caption(original_image)
             result['original_caption'] = original_caption
             
@@ -145,7 +148,7 @@ class BLIPCaptioner:
                     
                     if cropped_image is not None:
                         # Generate caption for cropped image
-                        logger.info(f"Generating caption for object {i+1}: {obj['label']}")
+
                         sub_caption = self.generate_caption(cropped_image)
                         obj_result['sub_image_caption'] = sub_caption
                     else:
@@ -153,10 +156,8 @@ class BLIPCaptioner:
                     
                     result['detected_objects'].append(obj_result)
             
-            logger.info(f"Successfully processed image ID: {image_data.get('id', 'unknown')}")
-            
         except Exception as e:
-            logger.error(f"Error processing image data: {e}")
+
             result['error'] = str(e)
         
         return result
@@ -172,7 +173,7 @@ class BLIPCaptioner:
         Returns:
             List of processed image data dictionaries
         """
-        logger.info(f"Loading data from: {input_file}")
+
         
         with open(input_file, 'r', encoding='utf-8') as f:
             data = json.load(f)
@@ -183,17 +184,27 @@ class BLIPCaptioner:
         results = []
         total_images = len(data)
         
-        for i, image_data in enumerate(data, 1):
-            logger.info(f"Processing image {i}/{total_images}")
+        count = 0
+        batch_id = 0
+        batch_size = 100
+        for i, image_data in enumerate(tqdm(data, desc="Images", unit="img", total=total_images), 1):
+
             result = self.process_image_data(image_data)
             results.append(result)
+            count += 1
+            if count % batch_size == 0:
+                out_path = f"./model_call/obj_capt_batch_{batch_id}.json"
+
+                with open(out_path, 'w', encoding='utf-8') as f:
+                    json.dump(results, f, indent=2, ensure_ascii=False)
+                batch_id += 1
         
         # Save results if output file specified
-        if output_file:
-            logger.info(f"Saving results to: {output_file}")
-            with open(output_file, 'w', encoding='utf-8') as f:
-                json.dump(results, f, indent=2, ensure_ascii=False)
-        
+        out_path = f"./model_call/obj_capt_batch_{batch_id}.json"
+        # logger.info(f"Saving results to: {out_path}")
+        with open(out_path, 'w', encoding='utf-8') as f:
+            json.dump(results, f, indent=2, ensure_ascii=False)
+
         return results
 
 
@@ -201,31 +212,19 @@ def main():
     """Main function to run the captioning script"""
     
     # Initialize captioner
-    captioner = BLIPCaptioner()
+    # To preserve the slow-processor behavior use use_fast=False. To opt in to faster processors (may
+    # change outputs slightly), set use_fast=True.
+    captioner = BLIPCaptioner(use_fast=False, model_name="Salesforce/blip-image-captioning-large")
     
     # Example usage
-    input_file = "example.json"
-    output_file = "example_with_captions.json"
+    input_file = "./model_call/images_dataset.json"
+    output_file = "./model_call/example_with_captions.json"
     
     if os.path.exists(input_file):
         try:
             results = captioner.process_json_file(input_file, output_file)
-            logger.info(f"Processing completed. Results saved to {output_file}")
-            
-            # Print summary
-            print("\n=== CAPTIONING SUMMARY ===")
-            for i, result in enumerate(results, 1):
-                print(f"\nImage {i} (ID: {result.get('id', 'unknown')}):")
-                print(f"  Original Caption: {result.get('original_caption', 'N/A')}")
-                
-                if 'detected_objects' in result:
-                    print(f"  Detected Objects ({len(result['detected_objects'])}):")
-                    for j, obj in enumerate(result['detected_objects'], 1):
-                        print(f"    {j}. {obj['label']} (conf: {obj['confidence']:.3f})")
-                        print(f"       Caption: {obj.get('sub_image_caption', 'N/A')}")
-                        
-        except Exception as e:
-            logger.error(f"Error processing file: {e}")
+        except:
+            logger.error("balba")
     else:
         logger.error(f"Input file not found: {input_file}")
         print("Please make sure 'example.json' exists in the same directory.")
