@@ -140,8 +140,8 @@ macthing_info_path = "./model_call/data/matching_info.json",):
             if image_sample:
                 only_image_dataset.append(image_sample)
 
-    with open("./model_call/data/match_dataset.json", "w", encoding="utf-8") as f:
-        json.dump(text_image_dataset, f, ensure_ascii=False, indent=4)
+    with open("./model_call/data/text_image_dataset.json", "w", encoding="utf-8") as f:
+        json.dump(match_dataset, f, ensure_ascii=False, indent=4)
     with open("./model_call/data/only_text_dataset.json", "w", encoding="utf-8") as f:
         json.dump(only_text_dataset, f, ensure_ascii=False, indent=4)
     with open("./model_call/data/only_image_dataset.json", "w", encoding="utf-8") as f:
