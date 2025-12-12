@@ -1,0 +1,97 @@
+[
+    {
+        "text_id": "0_1",
+        "image_id": "0_main",
+        "similarity": 0.512683093547821,
+        "review": "All the windows in the room are boarded up",
+        "review_aspects": [
+            {
+                "term": "windows",
+                "from": 2,
+                "to": 2
+            },
+            {
+                "term": "room",
+                "from": 5,
+                "to": 5
+            }
+        ],
+        "review_aspect_categories": [
+            "Facility",
+            "Facility"
+        ],
+        "review_opinions": [
+            {
+                "term": "boarded up",
+                "from": 7,
+                "to": 8
+            },
+            {
+                "term": "boarded up",
+                "from": 7,
+                "to": 8
+            }
+        ],
+        "review_opinion_categories": [
+            "Negative",
+            "Negative"
+        ],
+        "photo_url": "https://q-xx.bstatic.com/xdata/images/xphoto/max1280x900/161925155.jpg?k=720d50885d7fcd1d8d6c783f434eed5a960cca4ecc7d758f842081da307eaa4d&o=",
+        "photo_caption": "there is a bedroom with a large bed and a large window",
+        "label": "main_image",
+        "bbox": [
+            null,
+            null,
+            null,
+            null
+        ],
+        "confidence": 1
+    },
+    {
+        "text_id": "0_6",
+        "image_id": "0_0",
+        "similarity": 0.35180410742759705,
+        "review": "Paperthin walls and doors made it impossible to sleep",
+        "review_aspects": [
+            {
+                "term": "walls",
+                "from": 1,
+                "to": 1
+            },
+            {
+                "term": "doors",
+                "from": 3,
+                "to": 3
+            }
+        ],
+        "review_aspect_categories": [
+            "Facility",
+            "Facility"
+        ],
+        "review_opinions": [
+            {
+                "term": "Paperthin",
+                "from": 0,
+                "to": 0
+            },
+            {
+                "term": "Paperthin",
+                "from": 0,
+                "to": 0
+            }
+        ],
+        "review_opinion_categories": [
+            "Negative",
+            "Negative"
+        ],
+        "photo_url": "https://q-xx.bstatic.com/xdata/images/xphoto/max1280x900/161925155.jpg?k=720d50885d7fcd1d8d6c783f434eed5a960cca4ecc7d758f842081da307eaa4d&o=",
+        "photo_caption": "there is a bed with a white comforter and pillows in a room",
+        "label": "bed",
+        "bbox": [
+            844,
+            459,
+            1199,
+            789
+        ],
+        "confidence": 0.8143229484558105
+    }]
