@@ -12,28 +12,29 @@ import torch.nn as nn
 import json
 import pandas as pd
 import re
+from copy import deepcopy   
 
 # simple cache for heavyweight models so format_entry can be called repeatedly
 _MODEL_CACHE = {}
 
-def read_image_from_url(url: str):
-    """
-    Read image from URL and return PIL Image object
+# def read_image_from_url(url: str):
+#     """
+#     Read image from URL and return PIL Image object
     
-    Args:
-        url: Image URL
+#     Args:
+#         url: Image URL
         
-    Returns:
-        PIL Image object or None if failed
-    """
-    try:
-        response = requests.get(url, timeout=10)
-        response.raise_for_status()
-        image = Image.open(BytesIO(response.content))
-        return image
-    except Exception as e:
-        print(f"Error reading image from {url}: {e}")
-        return None
+#     Returns:
+#         PIL Image object or None if failed
+#     """
+#     try:
+#         response = requests.get(url, timeout=10)
+#         response.raise_for_status()
+#         image = Image.open(BytesIO(response.content))
+#         return image
+#     except Exception as e:
+#         print(f"Error reading image from {url}: {e}")
+#         return None
     
 def read_image_from_file(path: str):
     """
@@ -160,12 +161,8 @@ def project_features(region_features, output_dim=2048, device=None):
         projected = projection_layer(region_tensor).cpu().numpy()
     return projected
 
-def format_vlp_mabsa(entry: Dict, image_extract_model, device, out_dir="./data/text_image/vlp-mabsa/region_box", set_type="train"):
+def format_vlp_mabsa(entry: Dict, image_extract_model, device, term_type="all", out_dir="./data/text_image/vlp-mabsa/region_box", set_type="train"):
     review = entry["review"]
-    # Tokenize the review so punctuation stays as separate tokens.
-    # This will split words and keep punctuation like . , ! ? : ; as separate tokens.
-
-
     words = tokenize_review(review)
 
     # ensure outputs exist even if review aspects/opinions are missing
@@ -199,8 +196,7 @@ def format_vlp_mabsa(entry: Dict, image_extract_model, device, out_dir="./data/t
                 continue
 
             aspect_outputs.append(
-                {
-                    
+                {   
                     "term": remove_punctuation(aspect["term"]).split(),
                     "from": a_start,
                     "to": a_end + 1,
@@ -219,7 +215,22 @@ def format_vlp_mabsa(entry: Dict, image_extract_model, device, out_dir="./data/t
                 }
             )
 
-
+    text_outputs = {
+            "words": words,
+            "image_id": entry["image_id"]+".jpg",
+            "aspects": aspect_outputs,
+            "opinions": opinion_outputs
+        }
+    
+    if term_type == "aspect":
+        text_outputs.pop("opinions", None)
+    elif term_type == "opinion":
+        text_outputs.pop("aspects", None)
+    elif term_type == "all":
+        pass
+    else: 
+        raise ValueError(f"Invalid term_type: {term_type}. Must be one of 'all', 'aspect', 'opinion'.")
+    
     # format image
     # Ensure output directory exists
     out_dir = os.path.join(out_dir, set_type)
@@ -233,15 +244,7 @@ def format_vlp_mabsa(entry: Dict, image_extract_model, device, out_dir="./data/t
 
     if os.path.exists(os.path.join(att_dir, f"{entry['image_id']}.npz")) and \
        os.path.exists(os.path.join(box_dir, f"{entry['image_id']}.npy")):
-        return {
-            "words": words,
-            "image_id": entry["image_id"],
-            "aspects": aspect_outputs,
-            "opinions": opinion_outputs
-        }
-    
-    
-
+        return text_outputs
     # image_url = entry["photo_url"]
     # image = read_image_from_url(image_url)
     image_path = "./data/images/" + entry["image_id"] + ".jpg"
@@ -303,24 +306,93 @@ def format_vlp_mabsa(entry: Dict, image_extract_model, device, out_dir="./data/t
     np.savez(os.path.join(out_dir, '_att', f"{entry['image_id']}.npz"),
              feat=region_proj_feat)
 
-    return {
+    return text_outputs
+
+def format_dtca(entry: Dict, device, term_type, out_dir="./data/text_image/dtca", set_type="train"):
+    review = entry["review"]
+    words = tokenize_review(review)
+
+    aspects = entry.get("review_aspects", [])
+    aspect_outputs = []
+    if aspects:
+        for i, aspect in enumerate(aspects):
+            polarity = entry["review_opinion_categories"][i]
+            encoded_polarity = 1 if polarity == "Positive" else -1 if polarity == "Negative" else 0
+
+            aspect = remove_punctuation(aspect["term"])
+            index_in_review = words.index(aspect) if aspect in words else -1
+            if index_in_review == -1:
+                continue
+            else:
+                temp_words = deepcopy(words)
+                temp_words[index_in_review] = "$AT$"
+                temp_sentence = " ".join(temp_words)
+                if (temp_sentence, aspect, encoded_polarity, f'{entry["image_id"]}.jpg') not in aspect_outputs:
+                    aspect_outputs.append((temp_sentence, aspect, encoded_polarity))
+
+    opinions = entry.get("review_opinions", [])
+    opinion_outputs = []
+    if opinions:
+        for opinion in opinions:
+            polarity = entry["review_opinion_categories"][i]
+            encoded_polarity = 1 if polarity == "Positive" else -1 if polarity == "Negative" else 0
+
+            opinion = remove_punctuation(opinion["term"])
+            index_in_review = words.index(opinion) if opinion in words else -1
+            if index_in_review == -1:
+                continue
+            else:
+                temp_words = deepcopy(words)
+                temp_words[index_in_review] = "$OT$"
+                temp_sentence = " ".join(temp_words)
+                if (temp_sentence, opinion, encoded_polarity, ) not in opinion_outputs:
+                    opinion_outputs.append((temp_sentence, opinion, encoded_polarity))
+
+    text_outputs = {
         "words": words,
-        "image_id": entry["image_id"],
-        "aspects": aspect_outputs,
-        "opinions": opinion_outputs
-    }
+        "image_id": f'{entry["image_id"]}.jpg',
+        }
+    
+    if term_type == "aspect":
+        text_outputs["aspects"] = aspect_outputs
+    elif term_type == "opinion":
+        text_outputs["opinions"] = opinion_outputs
+    elif term_type == "all":
+        text_outputs["aspects"] = aspect_outputs
+        text_outputs["opinions"] = opinion_outputs
+    else:
+        raise ValueError(f"Invalid term_type: {term_type}. Must be one of 'all', 'aspect', 'opinion'.")
+    
+    # no needs to process image for DTCA format
+    return text_outputs
+
+
 # =================================================
 # Format wrapper
 # =================================================
 
-def format_entry(entry: Dict, device="cuda", strategy="vlp-mabsa", set_type="train"):
+def format_entry(entry: Dict, strategy, term_type="aspect", device="cuda", set_type="train"):
+    # check if images already downloaded
+    if os.path.exists(f"./data/hotel_images/{entry['image_id']}.jpg"):
+        print("Image already exists, skipping download.")
+        pass
+    else:
+        from components.prepare_data.image_downloading import download_sample_entry
+        output_dir = "./data/hotel_images"
+        downloaded_path = download_sample_entry(entry, output_dir)
+        print(f"Downloaded image to: {downloaded_path}")
+
+    
     if strategy == "vlp-mabsa":
-        # create and cache model per device so repeated calls (e.g. in a loop)
-        # don't reinstantiate the heavyweight detection model each time.
         if device not in _MODEL_CACHE:
             _MODEL_CACHE[device] = prepare_faster_rcnn_model(device)
         image_extract_model = _MODEL_CACHE[device]
-        return format_vlp_mabsa(entry, image_extract_model, device, set_type=set_type)
+        return format_vlp_mabsa(entry, image_extract_model = image_extract_model, device=device, 
+                                term_type=term_type, set_type=set_type)
+    
+    if strategy == "dtca":
+        return format_dtca(entry, device=device, term_type=term_type, set_type=set_type)
+
     return None
 
 
@@ -519,6 +591,7 @@ entry =[
     },
 ]
 
-# for e in entry:
-#     outputs= format_entry(e, device="cpu", strategy="vlp-mabsa", set_type="train")
-#     print(outputs)
+a_s, o_s = [] , []
+for e in entry:
+    results = format_entry(e, device="cpu", strategy="dtca", set_type="train", term_type="all")
+    print(results)
