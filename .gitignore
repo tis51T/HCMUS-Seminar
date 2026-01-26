@@ -28,3 +28,11 @@ data/
 *dataset*
 *.pt
 ComCLIP/
+
+data/
+my-framework/
+
+*.drawio
+*.excalidraw
+.vscode/
+papers/

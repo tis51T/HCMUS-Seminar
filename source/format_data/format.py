@@ -8,10 +8,9 @@ repo_root = Path(__file__).resolve().parents[1]
 repo_root_str = str(repo_root)
 if repo_root_str not in sys.path:
     sys.path.insert(0, repo_root_str)
-from format_data.strategy import format_entry, tokenize_review
+from source.format_data.strategy import format_entry, tokenize_review
 import torch
 from tqdm import tqdm
-import pandas as pd
 
 
 # helper to deduplicate list of dicts while preserving order
@@ -50,16 +49,16 @@ def unique_entries(lst):
         out.append(obj)
     return out
 # =====================================================================================
-with open("./data/text_image/text_image_dataset.json", "r") as f:
+with open("./data/hotel_data/original_set/original.json", "r") as f:
     raw_datasets = json.load(f)
 
 # load again dataset for formatting
-text_image_dir = os.path.join(".", "data", "text_image")
-os.makedirs(text_image_dir, exist_ok=True)
+folder_dir = os.path.join(".", "data", "hotel_data","original_set")
+os.makedirs(folder_dir, exist_ok=True)
 
-train_path = os.path.join(text_image_dir,  "train_dataset.json")
-dev_path = os.path.join(text_image_dir, "dev_dataset.json")
-test_path = os.path.join(text_image_dir, "test_dataset.json")
+train_path = os.path.join(folder_dir,  "train_dataset.json")
+dev_path = os.path.join(folder_dir, "dev_dataset.json")
+test_path = os.path.join(folder_dir, "test_dataset.json")
 
 # If split files are missing, create them from the full dataset
 if not (os.path.exists(train_path) and os.path.exists(dev_path) and os.path.exists(test_path)):
@@ -87,13 +86,13 @@ else:
 
 
 # format
-strategy = "dtca"  # or 
+strategy = "dtca" # or 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 if strategy == "vlp-mabsa":
     # Collect outputs as plain lists (do not use DataFrame per request)
     train_outputs, dev_outputs, test_outputs = [], [], []
 
-    out_dir_strategy = os.path.join(text_image_dir, strategy)
+    out_dir_strategy = os.path.join(folder_dir, strategy)
     os.makedirs(out_dir_strategy, exist_ok=True)
 
     for entry in tqdm(train_dataset):
@@ -190,9 +189,9 @@ if strategy == "vlp-mabsa":
 
 elif strategy == "dtca":
         # Collect outputs as plain lists (do not use DataFrame per request)
-    train_outputs, dev_outputs, test_outputs = "", "", ""
+    train_outputs, dev_outputs, test_outputs = set(), set(), set()
 
-    out_dir_strategy = os.path.join(text_image_dir, strategy)
+    out_dir_strategy = os.path.join(folder_dir, strategy)
     os.makedirs(out_dir_strategy, exist_ok=True)
 
     for entry in tqdm(train_dataset):
@@ -204,12 +203,12 @@ elif strategy == "dtca":
 
         if train_out:
             for aspect in train_out["aspects"]:
-                out = f'{aspect[0]}\n{aspect[1]}\n{aspect[2]}\n{train_out["image_id"]}\n'
+                out = f'{aspect[0]}\n{aspect[1]}\n{aspect[2]}\n{train_out["image_id"]}'
                 if out not in train_outputs:
-                    train_outputs += out
+                    train_outputs.add(out)
 
     with open(os.path.join(out_dir_strategy,"train.txt"), "w", encoding="utf-8") as f:
-        f.write(train_outputs)
+        f.write('\n'.join(train_outputs))
 
     for entry in tqdm(dev_dataset):
         try:
@@ -220,12 +219,12 @@ elif strategy == "dtca":
 
         if dev_out:
             for aspect in dev_out["aspects"]:
-                out = f'{aspect[0]}\n{aspect[1]}\n{aspect[2]}\n{dev_out["image_id"]}\n'
+                out = f'{aspect[0]}\n{aspect[1]}\n{aspect[2]}\n{dev_out["image_id"]}'
                 if out not in dev_outputs:
-                    dev_outputs += out
+                    dev_outputs.add(out)
 
     with open(os.path.join(out_dir_strategy,"dev.txt"), "w", encoding="utf-8") as f:
-        f.write(dev_outputs)
+        f.write('\n'.join(dev_outputs))
 
     for entry in tqdm(test_dataset):
         try:
@@ -236,10 +235,9 @@ elif strategy == "dtca":
 
         if test_out:
             for aspect in test_out["aspects"]:
-                out = f'{aspect[0]}\n{aspect[1]}\n{aspect[2]}\n{test_out["image_id"]}\n'
+                out = f'{aspect[0]}\n{aspect[1]}\n{aspect[2]}\n{test_out["image_id"]}'
                 if out not in test_outputs:
-                    test_outputs += out
+                    test_outputs.add(out)
 
     with open(os.path.join(out_dir_strategy,"test.txt"), "w", encoding="utf-8") as f:
-        f.write(test_outputs)
-
+        f.write('\n'.join(test_outputs))

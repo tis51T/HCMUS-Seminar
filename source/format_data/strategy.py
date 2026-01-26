@@ -12,7 +12,8 @@ import torch.nn as nn
 import json
 import pandas as pd
 import re
-from copy import deepcopy   
+from copy import deepcopy
+from source.prepare_data.image_downloading import download_sample_entry   
 
 # simple cache for heavyweight models so format_entry can be called repeatedly
 _MODEL_CACHE = {}
@@ -161,7 +162,7 @@ def project_features(region_features, output_dim=2048, device=None):
         projected = projection_layer(region_tensor).cpu().numpy()
     return projected
 
-def format_vlp_mabsa(entry: Dict, image_extract_model, device, term_type="all", out_dir="./data/text_image/vlp-mabsa/region_box", set_type="train"):
+def format_vlp_mabsa(entry: Dict, image_extract_model, device, term_type="all", out_dir="./data/text_image_set/vlp-mabsa/region_box", set_type="train"):
     review = entry["review"]
     words = tokenize_review(review)
 
@@ -211,9 +212,11 @@ def format_vlp_mabsa(entry: Dict, image_extract_model, device, term_type="all", 
                     "from": o_start,
                     "to": o_end + 1,
                     "polarity": polarity,
-                    "field": entry["review_aspect_categories"][i]
+                    "field": entry["review_opinion_categories"][i]
                 }
             )
+    else:
+        print(f"Warning: Missing aspects/opinions in entry {entry['text_id']}/{entry['image_id']}")
 
     text_outputs = {
             "words": words,
@@ -247,7 +250,7 @@ def format_vlp_mabsa(entry: Dict, image_extract_model, device, term_type="all", 
         return text_outputs
     # image_url = entry["photo_url"]
     # image = read_image_from_url(image_url)
-    image_path = "./data/images/" + entry["image_id"] + ".jpg"
+    image_path = "./data/hotel_data/images/" + entry["image_id"] + ".jpg"
     image = read_image_from_file(image_path)
     
     transform = transforms.Compose([
@@ -373,12 +376,12 @@ def format_dtca(entry: Dict, device, term_type, out_dir="./data/text_image/dtca"
 
 def format_entry(entry: Dict, strategy, term_type="aspect", device="cuda", set_type="train"):
     # check if images already downloaded
-    if os.path.exists(f"./data/hotel_images/{entry['image_id']}.jpg"):
+    if os.path.exists(f"./data/hotel_data/images/{entry['image_id']}.jpg"):
         print("Image already exists, skipping download.")
         pass
     else:
-        from components.prepare_data.image_downloading import download_sample_entry
-        output_dir = "./data/hotel_images"
+
+        output_dir = "./data/hotel_data/images"
         downloaded_path = download_sample_entry(entry, output_dir)
         print(f"Downloaded image to: {downloaded_path}")
 
@@ -394,204 +397,3 @@ def format_entry(entry: Dict, strategy, term_type="aspect", device="cuda", set_t
         return format_dtca(entry, device=device, term_type=term_type, set_type=set_type)
 
     return None
-
-
-entry =[
-    {
-        "text_id": "10_1",
-        "image_id": "10_main",
-        "similarity": 0.5631591081619263,
-        "review": "Lovely room and pool",
-        "review_aspects": [
-            {
-                "term": "room",
-                "from": 1,
-                "to": 1
-            },
-            {
-                "term": "pool",
-                "from": 3,
-                "to": 3
-            }
-        ],
-        "review_aspect_categories": [
-            "Facility",
-            "Facility"
-        ],
-        "review_opinions": [
-            {
-                "term": "Lovely",
-                "from": 0,
-                "to": 0
-            },
-            {
-                "term": "Lovely",
-                "from": 0,
-                "to": 0
-            }
-        ],
-        "review_opinion_categories": [
-            "Positive",
-            "Positive"
-        ],
-        "photo_url": "https://q-xx.bstatic.com/xdata/images/xphoto/max1280x900/226822174.jpg?k=342642af4a2d9824a9115c0f8064f1e3e2a62e91a323261f796b8ec487ac99b2&o=",
-        "photo_caption": "there is a small pool in the middle of a large house",
-        "label": "main_image",
-        "bbox": [
-            None,
-            None,
-            None,
-            None
-        ],
-        "confidence": 1
-    },
-    {
-        "text_id": "10_1",
-        "image_id": "10_1",
-        "similarity": 0.45163166522979736,
-        "review": "Lovely room and pool",
-        "review_aspects": [
-            {
-                "term": "room",
-                "from": 1,
-                "to": 1
-            },
-            {
-                "term": "pool",
-                "from": 3,
-                "to": 3
-            }
-        ],
-        "review_aspect_categories": [
-            "Facility",
-            "Facility"
-        ],
-        "review_opinions": [
-            {
-                "term": "Lovely",
-                "from": 0,
-                "to": 0
-            },
-            {
-                "term": "Lovely",
-                "from": 0,
-                "to": 0
-            }
-        ],
-        "review_opinion_categories": [
-            "Positive",
-            "Positive"
-        ],
-        "photo_url": "https://q-xx.bstatic.com/xdata/images/xphoto/max1280x900/226822174.jpg?k=342642af4a2d9824a9115c0f8064f1e3e2a62e91a323261f796b8ec487ac99b2&o=",
-        "photo_caption": "this is an image of a patio with a pool and a blue umbrella",
-        "label": "umbrella",
-        "bbox": [
-            92,
-            286,
-            301,
-            463
-        ],
-        "confidence": 0.3957480490207672
-    },
-    {
-        "text_id": "24_0",
-        "image_id": "24_14",
-        "similarity": 0.49013298749923706,
-        "review": "Going out is the beach, the sea view, very comfortable",
-        "review_aspects": [
-            {
-                "term": "beach,",
-                "from": 4,
-                "to": 4
-            },
-            {
-                "term": "sea view,",
-                "from": 6,
-                "to": 7
-            }
-        ],
-        "review_aspect_categories": [
-            "Facility",
-            "Facility"
-        ],
-        "review_opinions": [
-            {
-                "term": "comfortable",
-                "from": 9,
-                "to": 9
-            },
-            {
-                "term": "comfortable",
-                "from": 9,
-                "to": 9
-            }
-        ],
-        "review_opinion_categories": [
-            "Positive",
-            "Positive"
-        ],
-        "photo_url": "https://q-xx.bstatic.com/xdata/images/xphoto/max1280x900/149729069.jpg?k=f26b720eb990944e252c044cb28af81896d851f5505532b93fe14ad16fa6e228&o=",
-        "photo_caption": "there are many lounge chairs and umbrellas on the beach near the water",
-        "label": "umbrella",
-        "bbox": [
-            0,
-            179,
-            369,
-            830
-        ],
-        "confidence": 0.31494948267936707
-    },
-    {
-        "text_id": "24_0",
-        "image_id": "24_main",
-        "similarity": 0.48541101813316345,
-        "review": "Going out is the beach, the sea view, very comfortable",
-        "review_aspects": [
-            {
-                "term": "beach,",
-                "from": 4,
-                "to": 4
-            },
-            {
-                "term": "sea view,",
-                "from": 6,
-                "to": 7
-            }
-        ],
-        "review_aspect_categories": [
-            "Facility",
-            "Facility"
-        ],
-        "review_opinions": [
-            {
-                "term": "comfortable",
-                "from": 9,
-                "to": 9
-            },
-            {
-                "term": "comfortable",
-                "from": 9,
-                "to": 9
-            }
-        ],
-        "review_opinion_categories": [
-            "Positive",
-            "Positive"
-        ],
-        "photo_url": "https://q-xx.bstatic.com/xdata/images/xphoto/max1280x900/149729069.jpg?k=f26b720eb990944e252c044cb28af81896d851f5505532b93fe14ad16fa6e228&o=",
-        "photo_caption": "several lounge chairs and umbrellas on a sandy beach near the ocean",
-        "label": "main_image",
-        "bbox": [
-            None,
-            None,
-            None,
-            None
-        ],
-        "confidence": 1
-    },
-]
-
-a_s, o_s = [] , []
-for e in entry:
-    results = format_entry(e, device="cpu", strategy="dtca", set_type="train", term_type="all")
-    print(results)
