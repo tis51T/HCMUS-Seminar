@@ -2,22 +2,18 @@ This folder contains multiple framework for testing. To get a framework, go to g
 The directory will look like:
 ```
 framework/
-|- mabsa/
-    |- VLP-MABSA/
-    |- GMP/
-    |- JML/
-    |- CORSA/
-    |- AoM/
-    |- DTCA
-|- tim/
-    |- AAHR
-    |- ComCLIP
-    |- HREM
-
+    |- VLP-MABSA/ 
+    |- DTCA/
+    |- ...
 ```
+Detail of each framework is shown below:
+|Framework|Link|
+|-|-|
+|VLP-MABSA||
+|DTCA||
 
 
-
+<!-- 
 ### Download BART model
 BART model must be downloaded for running.
 ```
@@ -32,4 +28,4 @@ model = BartForConditionalGeneration.from_pretrained(model_name)
 # After loading or training your model
 model.save_pretrained(path)
 tokenizer.save_pretrained(path)
-```
+``` -->
