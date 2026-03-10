@@ -36,3 +36,5 @@ my-framework/
 *.excalidraw
 .vscode/
 papers/
+
+temp/
