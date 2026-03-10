@@ -1,3 +1,7 @@
+# Env
+
+Python 3.11.14
+
 # Papers
 Legend: 🔄️: Redo; 🛑: Not started; ✅: Success; ❌: Failed
 
